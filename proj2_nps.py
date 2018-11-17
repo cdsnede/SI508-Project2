@@ -323,11 +323,14 @@ while inp != 'exit':
         print("Valid commands include: \n * <list> * followed by <state abbreviation> in the next prompt. This returns list of national sites in that state.\n * <help> * Returns this list of commands) \n * <exit> To exit program. \n\n After running the <list> command you can also run: \n * <map> * Shows a map of national sites in the state you chose.\n * <nearby> * followed by a <number> in the next prompt. This returns a list of places nearby the site you chose.\n After running <nearby> you can also run <map> to see a map of the nearby sites.\n")
     elif inp == 'list':
         state_abbr = input("Enter valid state abbreviation: ")
-        sites_list=get_sites_for_state(state_abbr)
-        counter=1
-        for pl in sites_list:
-            print(counter, pl)
-            counter+=1
+        try:
+            sites_list=get_sites_for_state(state_abbr)
+            counter=1
+            for pl in sites_list:
+                print(counter, pl)
+                counter+=1
+        except:
+            print('Not a valid state abbreviaton')
     elif inp == 'nearby':
         if not sites_list:
             print("Oops! You have to enter <list> before entering nearby")

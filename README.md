@@ -24,7 +24,7 @@
 
 # Description of program
 
-This program works via the command prompt. Based on what you enter this program can scrape information about National Sites from NPS.gov, use Google's Places API to get the location coordinates of those sites as well as nearby places, and display these results as a scatter plot map in your browser (via Plotly).
+This program works via the command prompt. Based on what you enter this program can scrape information about National Sites from NPS.gov, use Google's Places API to get the location coordinates of those sites as well as nearby places, and display these results as a scatter plot map in your browser (via Plotly). Each time you run a valid command the results are saved the cache file. Further searches of the same name will pull from the cache until 7 days after your original search.
 
 ## Command Prompts
 

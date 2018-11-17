@@ -230,35 +230,37 @@ def plot_sites_for_state(state_abbr):
     for site in statelist:
         text_vals.append(site.name)
         sitecoords=get_googleapi_coordinates(site)
-        lat_vals.append(sitecoords[0])
-        lon_vals.append(sitecoords[1])
+        if sitecoords[0] != 0:
+            lat_vals.append(sitecoords[0])
+        if sitecoords[1] != 0:
+            lon_vals.append(sitecoords[1])
 
-    #min_lat = 10000
-    #max_lat = -10000
-    #min_lon = 10000
-    #max_lon = -10000
+    min_lat = 10000
+    max_lat = -10000
+    min_lon = 10000
+    max_lon = -10000
 
-    #for str_v in lat_vals:
-    #    v = float(str_v)
-    #    if v < min_lat:
-    #        min_lat = v
-    #    if v > max_lat:
-    #        max_lat = v
-    #for str_v in lon_vals:
-    #    v = float(str_v)
-    #    if v < min_lon:
-    #        min_lon = v
-    #    if v > max_lon:
-    #        max_lon = v
+    for str_v in lat_vals:
+        v = float(str_v)
+        if v < min_lat:
+            min_lat = v
+        if v > max_lat:
+            max_lat = v
+    for str_v in lon_vals:
+        v = float(str_v)
+        if v < min_lon:
+            min_lon = v
+        if v > max_lon:
+            max_lon = v
 
-    #lat_axis = [min_lat -1, max_lat+1]
-    #lon_axis = [min_lon-1, max_lon+1]
-    #center_lat = (max_lat+min_lat) / 2
-    #center_lon = (max_lon+min_lon) / 2
+    lat_axis = [min_lat -1, max_lat+1]
+    lon_axis = [min_lon-1, max_lon+1]
+    center_lat = (max_lat+min_lat) / 2
+    center_lon = (max_lon+min_lon) / 2
 
     data = [dict(type = 'scattergeo', locationmode = 'USA-states', lon = lon_vals, lat = lat_vals, text = text_vals, mode = 'markers', marker = dict(size = 8, symbol = 'star',))]
 
-    layout = dict(title = 'National Sites<br>(Hover for names)', geo = dict(scope='usa', projection=dict(type='albers usa'),showland = True, landcolor = "rgb(250, 250, 250)", subunitcolor = "rgb(100, 217, 217)", countrycolor = "rgb(217, 100, 217)", countrywidth = 3, subunitwidth = 3))
+    layout = dict(title = 'National Sites<br>(Hover for names)', geo = dict(scope='usa', projection=dict(type='albers usa'),showland = True, landcolor = "rgb(250, 250, 250)", subunitcolor = "rgb(100, 217, 217)", countrycolor = "rgb(217, 100, 217)", lataxis = {'range': lat_axis}, lonaxis = {'range': lon_axis}, center= {'lat': center_lat, 'lon': center_lon }, countrywidth = 3, subunitwidth = 3))
 
     fig = dict(data=data, layout=layout)
     py.plot(fig, validate=False, filename='National Sites by State')

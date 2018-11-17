@@ -27,10 +27,10 @@ class NationalSite():
         addressSoup=BeautifulSoup(address, 'html.parser')
         try:
             addressP=addressSoup.find('p', class_='adr')
-            self.address_street = addressP.find('span', itemprop='streetAddress').text
-            self.address_city = addressP.find('span', itemprop='addressLocality').text
-            self.address_state = addressP.find('span', itemprop='addressRegion').text
-            self.address_zip = addressP.find('span', itemprop='postalCode').text
+            self.address_street = addressP.find('span', itemprop='streetAddress').text.replace("\n", "")
+            self.address_city = addressP.find('span', itemprop='addressLocality').text.replace("\n", "")
+            self.address_state = addressP.find('span', itemprop='addressRegion').text.replace("\n", "")
+            self.address_zip = addressP.find('span', itemprop='postalCode').text.replace("\n", "")
         except:
             self.address_street = "Not Listed"
             self.address_city = "Not Listed"

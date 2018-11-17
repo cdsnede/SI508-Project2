@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import requests
 import json
+import plotly
 
 ####################
 ## set up classes ##
@@ -21,7 +22,9 @@ class NationalSite():
         self.description = desc
         self.url = url
 
-        address = requests.get(base+url).text
+        base = "https://www.nps.gov"
+        #address = requests.get(base+url).text
+        address = check_cache(base+url)
         addressSoup=BeautifulSoup(address, 'html.parser')
         addressP=addressSoup.find('p', class_='adr')
         self.address_street = addressP.find('span', itemprop='streetAddress').text
@@ -38,47 +41,59 @@ class NearbyPlace():
     def __init__(self, name):
         self.name = name
 
-
+    def __str__(self):
+        return self.name
 ############################
-## homepage cache and run ##
+## NPS homepage cache and run ##
 ############################
-cache_file = "nps.json"
-site="nps"
-topic="national_sites"
+cache_file = "cache.json"
 cache = Cache(cache_file)
-base = "https://www.nps.gov"
+#site="nps"
+#topic="national_sites"
 
-def create_id(site, topic):
-    return "{}_{}.json".format(site, topic)
-
-UID = create_id(site, topic)
-response = cache.get(UID)
-
-if response == None:
-    response = requests.get(base).text
-    cache.set(UID, response, 7)
-
-def process_homepage(response):
-        #parse homepage, find state link, go to state link, retrieve list of parks
-        soup = BeautifulSoup(response, 'html.parser')
-        searchbar=soup.find('body').find_all('div', class_='SearchBar')
-        menu=searchbar[0].find('ul', class_='dropdown-menu')
-        links=menu.find_all('a')
-        stateurls=[]
-        slash='/'
-        for link in links:
-            stateurls.append(link.get('href'))
-        return stateurls
-
-stateurls=process_homepage(response)
-#######################
-#     get state info     #
-#######################
-#original do not delete
+#original createid. do not delete
 #def create_id(site, topic):
 #    return "{}_{}_{}.json".format(site, topic, str(datetime.now()).replace(' ', ''))
 
+def create_uid(base, params=None):
+    if params:
+        return "{}_{}.json".format(base, params)
+    else:
+        return "{}.json".format(base)
 
+def check_cache(base, params=None):
+    if params:
+        UID=create_uid(base, params)
+        response = cache.get(UID)
+        if response == None:
+            response = requests.get(base, params).text
+            cache.set(UID, response, 7)
+    else:
+        UID=create_uid(base)
+        response = cache.get(UID)
+        if response == None:
+            response = requests.get(base).text
+            cache.set(UID, response, 7)
+    return response
+
+def get_state_urls():
+    #parse homepage, find state link, go to state link, retrieve list of parks
+    base = "https://www.nps.gov"
+    response=check_cache(base)
+    soup = BeautifulSoup(response, 'html.parser')
+    searchbar=soup.find('body').find_all('div', class_='SearchBar')
+    menu=searchbar[0].find('ul', class_='dropdown-menu')
+    links=menu.find_all('a')
+    stateurls=[]
+    slash='/'
+    for link in links:
+        stateurls.append(link.get('href'))
+    return stateurls
+
+stateurls=get_state_urls()
+#######################
+#     get state info     #
+#######################
 
 ## Must return the list of NationalSites for the specified state
 ## param: the 2-letter state abbreviation, lowercase
@@ -87,15 +102,17 @@ stateurls=process_homepage(response)
 ##        (e.g., National Parks, National Heritage Sites, etc.) that are listed
 ##        for the state at nps.gov
 def get_sites_for_state(state_abbr):
-    #find state link, go to state link, retrieve list of parks
+    #state_abbr=state_abbr.lower()#find state link, go to state link, retrieve list of parks
     slash='/'
+    base = "https://www.nps.gov"
     splitstate=[]
     for state in stateurls:
         splitstate.append(state.split("/"))
     for i in splitstate:
         if i[2] == state_abbr:
             go_to_state=slash.join(i)
-            stateinfo = requests.get(base+go_to_state).text
+            stateinfo=check_cache(base+go_to_state)
+            #stateinfo = requests.get(base+go_to_state).text
             statesoup=BeautifulSoup(stateinfo, 'html.parser')
             parksoup=statesoup.find_all('ul',id="list_parks")
             sites=parksoup[0].find_all('li', class_='clearfix')
@@ -109,19 +126,66 @@ def get_sites_for_state(state_abbr):
                 parklist.append(park)
             return parklist
 
-abbrev='ok'
+abbrev='mi'
 parklist=get_sites_for_state(abbrev)
-for park in parklist:
-    print(park)
+
+    #eventually use this to do get_nearby_places(park)
+
+#########################
+## google places stuff ##
+#########################
+
+#paramsdict={'key':google_places_key}
+#google_base = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
+
+#def create_id(site, params):
+#    return "{}_{}.json".format(site, params)
+
+#googleUID = create_id(site, paramsdict)
+#google_response = google_cache.get(googleUID)
+#if google_response == None:
+#    print('*********NOT IN CACHE***********')
+#    google_response = requests.get(google_base, paramsdict)
+#    google_places_info=json.loads(google_response.text)
+#    google_cache.set(googleUID, google_places_info, 7)
+
 
 ## Must return the list of NearbyPlaces for the specifite NationalSite
 ## param: a NationalSite object
 ## returns: a list of NearbyPlaces within 10km of the given site
 ##          if the site is not found by a Google Places search, this should
 ##          return an empty list
-def get_nearby_places_for_site(national_site):
-    return []
+##Define a function `get_nearby_places(site_object)` that accepts an instance of `NationalSite` as input, looks up a site by name using the Google Places AP,I and returns a list of up to 20 nearby places, where “nearby” is defined as within 10km (note: 20 results is the default maximum number returned by the Google Places API without paging).
+#  - Getting the list of nearby places will require two calls to the google places API:
+#    - one to get the GPS coordinates for a site (tip: do a text search for <site.name> <site.type>, e.g. “Death Valley National Park” or “Sleeping Bear Dunes National Lakeshore” instead of “Death Valley” or “Sleeping Bear”, to ensure a more precise match--it turns out there are lots of places called “Death Valley” that aren’t National Parks!),
+#    - AND another one to get the places that are nearby that location.
+ # - get_nearby_places(site_object) should return a list of `NearbyPlace` instances.
 
+def get_nearby_places_for_site(national_site):
+    paramsdict={}
+    paramsdict['key']='AIzaSyDQGvVsAJfiMnnzQBjsUW-9Oou_1Sx2PAc'
+    paramsdict['input']='{} {}'.format(national_site.name, national_site.type)
+    paramsdict['inputtype']='textquery'
+    paramsdict['fields']='geometry'
+    site_base = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
+    placedata=check_cache(site_base, paramsdict)
+    findplace=json.loads(placedata)
+    coords=''
+    for place in findplace['candidates']:
+        latitude=place['geometry']['location']['lat']
+        longitude=place['geometry']['location']['lng']
+        coords=str(latitude)+','+str(longitude)
+    nearby_paramsdict={}
+    nearby_paramsdict['location']=coords
+    nearby_paramsdict['key']='AIzaSyDQGvVsAJfiMnnzQBjsUW-9Oou_1Sx2PAc'
+    nearby_paramsdict['radius']=10000
+    nearby_base='https://maps.googleapis.com/maps/api/place/nearbysearch/json'
+    nearby_data=check_cache(nearby_base, nearby_paramsdict)
+    nearbyplaces=json.loads(nearby_data)
+    print(nearby_data) #not parsed yet, but works at geting 20 places
+
+test_place=parklist[1]
+get_nearby_places_for_site(test_place)
 ## Must plot all of the NationalSites listed for the state on nps.gov
 ## Note that some NationalSites might actually be located outside the state.
 ## If any NationalSites are not found by the Google Places API they should

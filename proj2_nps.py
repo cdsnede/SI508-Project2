@@ -265,11 +265,65 @@ def plot_sites_for_state(state_abbr):
     fig = dict(data=data, layout=layout)
     py.plot(fig, validate=False, filename='National Sites by State')
 
-plot_sites_for_state(abbrev)
+
 
 ## Must plot up to 20 of the NearbyPlaces found using the Google Places API
 ## param: the NationalSite around which to search
 ## returns: nothing
 ## side effects: launches a plotly page in the web browser
 def plot_nearby_for_site(site_object):
-    pass
+    natl_site_lon_vals=[]
+    natl_site_lat_vals=[]
+    natl_site_text_vals=[]
+    natl_site_text_vals.append(site_object.name)
+    natl_site_data=get_googleapi_coordinates(site_object)
+    if natl_site_data[0] != 0:
+        natl_site_lat_vals.append(natl_site_data[0])
+    if natl_site_data[1] != 0:
+        natl_site_lon_vals.append(natl_site_data[1])
+
+    nearby_sites_lon_vals=[]
+    nearby_sites_lat_vals=[]
+    nearby_sites_text_vals=[]
+    nearbylist=get_nearby_places_for_site(site_object)
+    for nearby_place in nearbylist:
+        nearby_sites_text_vals.append(nearby_place.name)
+        nearby_sites_lat_vals.append(nearby_place.lat)
+        nearby_sites_lon_vals.append(nearby_place.lng)
+
+    min_lat = 10000
+    max_lat = -10000
+    min_lon = 10000
+    max_lon = -10000
+
+    for str_v in nearby_sites_lat_vals:
+        v = float(str_v)
+        if v < min_lat:
+            min_lat = v
+        if v > max_lat:
+            max_lat = v
+    for str_v in nearby_sites_lon_vals:
+        v = float(str_v)
+        if v < min_lon:
+            min_lon = v
+        if v > max_lon:
+            max_lon = v
+
+    lat_axis = [min_lat -1, max_lat+1]
+    lon_axis = [min_lon-1, max_lon+1]
+    center_lat = (max_lat+min_lat) / 2
+    center_lon = (max_lon+min_lon) / 2
+
+    trace1=dict(type = 'scattergeo', locationmode = 'USA-states', lon = natl_site_lon_vals, lat = natl_site_lat_vals, text = natl_site_text_vals, mode = 'markers', marker = dict(size = 8, symbol = 'star',))
+
+    trace2=dict(type = 'scattergeo', locationmode = 'USA-states', lon = nearby_sites_lon_vals, lat = nearby_sites_lat_vals, text = nearby_sites_text_vals, mode = 'markers', marker = dict(size = 6, symbol = 'circle'))
+
+    data = [trace1, trace2]
+
+    layout = dict(title = 'Nearby Sites<br>(Hover for names)', geo = dict(scope='usa', projection=dict(type='albers usa'),showland = True, landcolor = "rgb(250, 250, 250)", subunitcolor = "rgb(100, 217, 217)", countrycolor = "rgb(217, 100, 217)", lataxis = {'range': lat_axis}, lonaxis = {'range': lon_axis}, center= {'lat': center_lat, 'lon': center_lon }, countrywidth = 3, subunitwidth = 3))
+
+    fig = dict(data=data, layout=layout)
+
+    py.plot(fig, validate=False, filename='Nearby Sites')
+
+plot_nearby_for_site(test_place)

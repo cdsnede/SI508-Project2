@@ -129,8 +129,8 @@ def get_sites_for_state(state_abbr):
                 parklist.append(park)
             return parklist
 
-abbrev='mi'
-parklist=get_sites_for_state(abbrev)
+#abbrev='mi'
+#parklist=get_sites_for_state(abbrev)
 
 
 ## Must return the list of NearbyPlaces for the specifite NationalSite
@@ -147,18 +147,30 @@ def get_googleapi_coordinates(national_site):
     #takes a NationalSite class instance, returns the latitude & longitude coordinates of the site
     paramsdict={}
     paramsdict['key'] = google_places_key
-    paramsdict['input']='{} {}'.format(national_site.name, national_site.type)
+    paramsdict['input']='{}_{}'.format(national_site.name, national_site.type)
     paramsdict['inputtype']='textquery'
-    paramsdict['fields']='geometry'
+    paramsdict['fields']='geometry,formatted_address'
     site_base = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
     placedata=check_cache(site_base, paramsdict)
     findplace=json.loads(placedata)
     latitude=0
     longitude=0
     for place in findplace['candidates']:
-        latitude=place['geometry']['location']['lat']
-        longitude=place['geometry']['location']['lng']
+        formatted_address=place['formatted_address']
+        formatted_address=formatted_address.split()
+        if len(formatted_address) >= 3:
+            if formatted_address[-3] == 'HI':
+                latitude=0
+                longitude=0
+                print(formatted_address, latitude, longitude)
+            else:
+                latitude=place['geometry']['location']['lat']
+                longitude=place['geometry']['location']['lng']
+        else:
+            latitude=place['geometry']['location']['lat']
+            longitude=place['geometry']['location']['lng']
     return latitude,longitude
+
 
 def get_nearby_places_for_site(national_site):
     #takes a NationalSite class instance and returns a list of (up to) 20 nearby places
@@ -172,9 +184,12 @@ def get_nearby_places_for_site(national_site):
     findplace=json.loads(placedata)
     coords=''
     for place in findplace['candidates']:
-        latitude=place['geometry']['location']['lat']
-        longitude=place['geometry']['location']['lng']
-        coords=str(latitude)+','+str(longitude)
+        try:
+            latitude=place['geometry']['location']['lat']
+            longitude=place['geometry']['location']['lng']
+            coords=str(latitude)+','+str(longitude)
+        except:
+            print("Sorry, we couldn't find that location. Try another.")
     nearby_paramsdict={}
     nearby_paramsdict['location']=coords
     nearby_paramsdict['key'] = google_places_key
@@ -190,9 +205,9 @@ def get_nearby_places_for_site(national_site):
         nearbyplaces_list.append(NearbyPlace(name,lng,lat))
     return nearbyplaces_list
 
-test_place=parklist[1]
-testcoords=get_googleapi_coordinates(test_place)
-testlist=get_nearby_places_for_site(test_place)
+#test_place=parklist[1]
+#testcoords=get_googleapi_coordinates(test_place)
+#testlist=get_nearby_places_for_site(test_place)
 
 #for l in testlist:
 #    print(l)
@@ -216,6 +231,7 @@ def plot_sites_for_state(state_abbr):
             lat_vals.append(sitecoords[0])
         if sitecoords[1] != 0:
             lon_vals.append(sitecoords[1])
+        print(lat_vals, lon_vals)
 
     min_lat = 10000
     max_lat = -10000
@@ -318,10 +334,12 @@ sites_list=None
 sitename=None
 inp=input("Hi! Enter a command to start the program. Enter 'help' for a list of commands.: ")
 inp=inp.lower()
+lastcommand=''
 while inp != 'exit':
     if inp == 'help':
         print("Valid commands include: \n * <list> * followed by <state abbreviation> in the next prompt. This returns list of national sites in that state.\n * <help> * Returns this list of commands) \n * <exit> To exit program. \n\n After running the <list> command you can also run: \n * <map> * Shows a map of national sites in the state you chose.\n * <nearby> * followed by a <number> in the next prompt. This returns a list of places nearby the site you chose.\n After running <nearby> you can also run <map> to see a map of the nearby sites.\n")
     elif inp == 'list':
+        lastcommand='list'
         state_abbr = input("Enter valid state abbreviation: ")
         try:
             sites_list=get_sites_for_state(state_abbr)
@@ -332,6 +350,7 @@ while inp != 'exit':
         except:
             print('Not a valid state abbreviaton')
     elif inp == 'nearby':
+        lastcommand='nearby'
         if not sites_list:
             print("Oops! You have to enter <list> before entering nearby")
         else:
@@ -340,15 +359,18 @@ while inp != 'exit':
                 index=int(num)-1
                 sitename=sites_list[index]
                 nearbysites_list=get_nearby_places_for_site(sitename)
+                if len(nearbysites_list) == 0:
+                    print("Sorry. We couldn't find that site.")
                 for p in nearbysites_list:
                     print(p)
+
             except:
                 print("Oops! That wasn't a valid number")
 
     elif inp == 'map':
-        if sitename:
+        if lastcommand == 'nearby':
             plot_nearby_for_site(sitename)
-        elif sites_list:
+        elif lastcommand =='list':
             plot_sites_for_state(state_abbr)
         else:
             print("Oops! You have to enter <list> before entering nearby")

@@ -155,21 +155,16 @@ def get_googleapi_coordinates(national_site):
     findplace=json.loads(placedata)
     latitude=0
     longitude=0
+    formatted_address=''
     for place in findplace['candidates']:
-        formatted_address=place['formatted_address']
-        formatted_address=formatted_address.split()
-        if len(formatted_address) >= 3:
-            if formatted_address[-3] == 'HI':
-                latitude=0
-                longitude=0
-                print(formatted_address, latitude, longitude)
-            else:
-                latitude=place['geometry']['location']['lat']
-                longitude=place['geometry']['location']['lng']
-        else:
+        try:
+            formatted_address=place['formatted_address']
+            formatted_address=formatted_address.split()
             latitude=place['geometry']['location']['lat']
             longitude=place['geometry']['location']['lng']
-    return latitude,longitude
+            return latitude,longitude,formatted_address
+        except:
+            return latitude,longitude,formatted_address
 
 
 def get_nearby_places_for_site(national_site):
@@ -227,11 +222,13 @@ def plot_sites_for_state(state_abbr):
     for site in statelist:
         text_vals.append(site.name)
         sitecoords=get_googleapi_coordinates(site)
-        if sitecoords[0] != 0:
+        if state_abbr == 'ca' or state_abbr == 'ak':
+            if site.address_state == 'HI':
+                sitecoords = (0,0,0)
+        if sitecoords and sitecoords[0] != 0:
             lat_vals.append(sitecoords[0])
-        if sitecoords[1] != 0:
+        if sitecoords and sitecoords[1] != 0:
             lon_vals.append(sitecoords[1])
-        print(lat_vals, lon_vals)
 
     min_lat = 10000
     max_lat = -10000

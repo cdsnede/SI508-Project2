@@ -104,7 +104,6 @@ def get_state_urls():
 ##        (e.g., National Parks, National Heritage Sites, etc.) that are listed
 ##        for the state at nps.gov
 def get_sites_for_state(state_abbr):
-    #need to try/except state_abbr, make lower
     #takes a state abbreviation, returns list of all national sites for that state
     stateurls=get_state_urls()
     slash='/'
@@ -128,9 +127,6 @@ def get_sites_for_state(state_abbr):
                 park = NationalSite(type, name, desc, parkurl)
                 parklist.append(park)
             return parklist
-
-#abbrev='mi'
-#parklist=get_sites_for_state(abbrev)
 
 
 ## Must return the list of NearbyPlaces for the specifite NationalSite
@@ -200,12 +196,7 @@ def get_nearby_places_for_site(national_site):
         nearbyplaces_list.append(NearbyPlace(name,lng,lat))
     return nearbyplaces_list
 
-#test_place=parklist[1]
-#testcoords=get_googleapi_coordinates(test_place)
-#testlist=get_nearby_places_for_site(test_place)
 
-#for l in testlist:
-#    print(l)
 ## Must plot all of the NationalSites listed for the state on nps.gov
 ## Note that some NationalSites might actually be located outside the state.
 ## If any NationalSites are not found by the Google Places API they should
@@ -219,6 +210,7 @@ def plot_sites_for_state(state_abbr):
     lat_vals=[]
     text_vals=[]
     statelist=get_sites_for_state(state_abbr)
+    state_title=state_abbr.upper()
     for site in statelist:
         text_vals.append(site.name)
         sitecoords=get_googleapi_coordinates(site)
@@ -255,7 +247,7 @@ def plot_sites_for_state(state_abbr):
 
     data = [dict(type = 'scattergeo', locationmode = 'USA-states', lon = lon_vals, lat = lat_vals, text = text_vals, mode = 'markers', marker = dict(size = 8, symbol = 'star',))]
 
-    layout = dict(title = 'National Sites<br>(Hover for names)', geo = dict(scope='usa', projection=dict(type='albers usa'),showland = True, landcolor = "rgb(250, 250, 250)", subunitcolor = "rgb(100, 217, 217)", countrycolor = "rgb(217, 100, 217)", lataxis = {'range': lat_axis}, lonaxis = {'range': lon_axis}, center= {'lat': center_lat, 'lon': center_lon }, countrywidth = 3, subunitwidth = 3))
+    layout = dict(title = 'National Sites in {}<br>(Hover for names)'.format(state_title), geo = dict(scope='usa', projection=dict(type='albers usa'),showland = True, landcolor = "rgb(250, 250, 250)", subunitcolor = "rgb(100, 217, 217)", countrycolor = "rgb(217, 100, 217)", lataxis = {'range': lat_axis}, lonaxis = {'range': lon_axis}, center= {'lat': center_lat, 'lon': center_lon }, countrywidth = 3, subunitwidth = 3))
 
     fig = dict(data=data, layout=layout)
     py.plot(fig, validate=False, filename='National Sites by State')
@@ -316,13 +308,12 @@ def plot_nearby_for_site(site_object):
 
     data = [trace1, trace2]
 
-    layout = dict(title = 'Nearby Sites<br>(Hover for names)', geo = dict(scope='usa', projection=dict(type='albers usa'),showland = True, landcolor = "rgb(250, 250, 250)", subunitcolor = "rgb(100, 217, 217)", countrycolor = "rgb(217, 100, 217)", lataxis = {'range': lat_axis}, lonaxis = {'range': lon_axis}, center= {'lat': center_lat, 'lon': center_lon }, countrywidth = 3, subunitwidth = 3))
+    layout = dict(title = 'Places Nearby {}<br>(Hover for names)'.format(site_object.name), geo = dict(scope='usa', projection=dict(type='albers usa'),showland = True, landcolor = "rgb(250, 250, 250)", subunitcolor = "rgb(100, 217, 217)", countrycolor = "rgb(217, 100, 217)", lataxis = {'range': lat_axis}, lonaxis = {'range': lon_axis}, center= {'lat': center_lat, 'lon': center_lon }, countrywidth = 3, subunitwidth = 3))
 
     fig = dict(data=data, layout=layout)
 
     py.plot(fig, validate=False, filename='Nearby Sites')
 
-#plot_nearby_for_site(test_place)
 
 ##########
 ## main ##
@@ -334,7 +325,7 @@ inp=inp.lower()
 lastcommand=''
 while inp != 'exit':
     if inp == 'help':
-        print("Valid commands include: \n * <list> * followed by <state abbreviation> in the next prompt. This returns list of national sites in that state.\n * <help> * Returns this list of commands) \n * <exit> To exit program. \n\n After running the <list> command you can also run: \n * <map> * Shows a map of national sites in the state you chose.\n * <nearby> * followed by a <number> in the next prompt. This returns a list of places nearby the site you chose.\n After running <nearby> you can also run <map> to see a map of the nearby sites.\n")
+        print("Valid commands include: \n * <list> * followed by <state abbreviation> in the next prompt. This returns a numbered list of national sites in that state.\n * <help> * Returns this list of commands \n * <exit> * To exit program. \n\n After running the <list> command you can also run: \n * <map> * Shows a map of national sites in the state you chose.\n * <nearby> * followed by a <number> in the next prompt. This returns a list of places nearby the site you chose.\n * After running <nearby> you can also run <map> to see a map of the nearby sites.\n")
     elif inp == 'list':
         lastcommand='list'
         state_abbr = input("Enter valid state abbreviation: ")
@@ -349,9 +340,9 @@ while inp != 'exit':
     elif inp == 'nearby':
         lastcommand='nearby'
         if not sites_list:
-            print("Oops! You have to enter <list> before entering nearby")
+            print("Oops! You have to enter <list> before entering <nearby>")
         else:
-            num = input("Enter number of the place you want to search (see your list above): ")
+            num = input("Enter the number of the place you want to search nearby (see your list above): ")
             try:
                 index=int(num)-1
                 sitename=sites_list[index]

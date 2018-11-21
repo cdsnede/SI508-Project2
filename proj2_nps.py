@@ -10,11 +10,6 @@ import plotly.plotly as py
 ## set up classes ##
 ####################
 
-## you can, and should add to and modify this class any way you see fit
-## you can add attributes and modify the __init__ parameters,
-##   as long as tests still pass
-##
-## the starter code is here just to make the tests run (and fail)
 class NationalSite():
     def __init__(self, type, name, desc, url=None):
         self.type = type
@@ -38,15 +33,14 @@ class NationalSite():
             self.address_zip = "Not Listed"
 
     def __str__(self):
-        #address_street - has weird line break
         return "{}, ({}): {}, {}, {} {}".format(self.name, self.type, self.address_street, self.address_city, self.address_state, self.address_zip)
 
 
 class NearbyPlace():
     def __init__(self, name, lng, lat):
         self.name = name
-        self.lng=lng
-        self.lat=lat
+        self.lng = lng
+        self.lat = lat
 
     def __str__(self):
         return self.name
@@ -54,6 +48,7 @@ class NearbyPlace():
 ##################
 ## set up cache ##
 ##################
+#data from the same search will expire after 7 days. to change this modify the integer in lines 67 & 73
 cache_file = "cache.json"
 cache = Cache(cache_file)
 
@@ -85,79 +80,63 @@ def check_cache(base, params=None):
 def get_state_urls():
     #parses NPS.gov homepage, returns list of all state URLs
     base = "https://www.nps.gov"
-    response=check_cache(base)
+    response = check_cache(base)
     soup = BeautifulSoup(response, 'html.parser')
-    searchbar=soup.find('body').find_all('div', class_='SearchBar')
-    menu=searchbar[0].find('ul', class_='dropdown-menu')
-    links=menu.find_all('a')
-    stateurls=[]
+    searchbar = soup.find('body').find_all('div', class_='SearchBar')
+    menu = searchbar[0].find('ul', class_='dropdown-menu')
+    links = menu.find_all('a')
+    stateurls = []
     slash='/'
     for link in links:
         stateurls.append(link.get('href'))
     return stateurls
 
 
-## Must return the list of NationalSites for the specified state
-## param: the 2-letter state abbreviation, lowercase
-##        (OK to make it work for uppercase too)
-## returns: all of the NationalSites
-##        (e.g., National Parks, National Heritage Sites, etc.) that are listed
-##        for the state at nps.gov
 def get_sites_for_state(state_abbr):
     #takes a state abbreviation, returns list of all national sites for that state
-    stateurls=get_state_urls()
-    slash='/'
+    stateurls = get_state_urls()
+    slash = '/'
     base = "https://www.nps.gov"
-    splitstate=[]
+    splitstate = []
     for state in stateurls:
         splitstate.append(state.split("/"))
     for i in splitstate:
         if i[2] == state_abbr:
-            go_to_state=slash.join(i)
-            stateinfo=check_cache(base+go_to_state)
-            statesoup=BeautifulSoup(stateinfo, 'html.parser')
-            parksoup=statesoup.find_all('ul',id="list_parks")
-            sites=parksoup[0].find_all('li', class_='clearfix')
-            parklist=[]
+            go_to_state = slash.join(i)
+            stateinfo = check_cache(base+go_to_state)
+            statesoup = BeautifulSoup(stateinfo, 'html.parser')
+            parksoup = statesoup.find_all('ul',id="list_parks")
+            sites = parksoup[0].find_all('li', class_='clearfix')
+            parklist = []
             for site in sites:
-                type=site.find('h2').text
-                name=site.find('h3').find('a').text
-                desc=site.find('p').text
-                parkurl=site.find('h3').find('a').get('href')
+                type = site.find('h2').text
+                name = site.find('h3').find('a').text
+                desc = site.find('p').text
+                parkurl = site.find('h3').find('a').get('href')
                 park = NationalSite(type, name, desc, parkurl)
                 parklist.append(park)
             return parklist
 
 
-## Must return the list of NearbyPlaces for the specifite NationalSite
-## param: a NationalSite object
-## returns: a list of NearbyPlaces within 10km of the given site
-##          if the site is not found by a Google Places search, this should
-##          return an empty list
-##Define a function `get_nearby_places(site_object)` that accepts an instance of `NationalSite` as input, looks up a site by name using the Google Places AP,I and returns a list of up to 20 nearby places, where “nearby” is defined as within 10km (note: 20 results is the default maximum number returned by the Google Places API without paging).
-#  - Getting the list of nearby places will require two calls to the google places API:
-#    - one to get the GPS coordinates for a site (tip: do a text search for <site.name> <site.type>, e.g. “Death Valley National Park” or “Sleeping Bear Dunes National Lakeshore” instead of “Death Valley” or “Sleeping Bear”, to ensure a more precise match--it turns out there are lots of places called “Death Valley” that aren’t National Parks!),
-#    - AND another one to get the places that are nearby that location.
- # - get_nearby_places(site_object) should return a list of `NearbyPlace` instances.
 def get_googleapi_coordinates(national_site):
     #takes a NationalSite class instance, returns the latitude & longitude coordinates of the site
-    paramsdict={}
+    paramsdict = {}
     paramsdict['key'] = google_places_key
-    paramsdict['input']='{}_{}'.format(national_site.name, national_site.type)
-    paramsdict['inputtype']='textquery'
-    paramsdict['fields']='geometry,formatted_address'
+    paramsdict['input'] = '{}_{}'.format(national_site.name, national_site.type)
+    paramsdict['inputtype'] = 'textquery'
+    paramsdict['fields'] = 'geometry,formatted_address'
     site_base = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
-    placedata=check_cache(site_base, paramsdict)
-    findplace=json.loads(placedata)
-    latitude=0
-    longitude=0
-    formatted_address=''
+    placedata = check_cache(site_base, paramsdict)
+    findplace = json.loads(placedata)
+    latitude = 0
+    longitude = 0
+    formatted_address = ''
     for place in findplace['candidates']:
         try:
-            formatted_address=place['formatted_address']
-            formatted_address=formatted_address.split()
-            latitude=place['geometry']['location']['lat']
-            longitude=place['geometry']['location']['lng']
+            formatted_address = place['formatted_address']
+            formatted_address = formatted_address.split()
+            latitude = place['geometry']['location']['lat']
+            longitude = place['geometry']['location']['lng']
             return latitude,longitude,formatted_address
         except:
             return latitude,longitude,formatted_address
@@ -165,55 +144,48 @@ def get_googleapi_coordinates(national_site):
 
 def get_nearby_places_for_site(national_site):
     #takes a NationalSite class instance and returns a list of (up to) 20 nearby places
-    paramsdict={}
+    paramsdict = {}
     paramsdict['key'] = google_places_key
-    paramsdict['input']='{} {}'.format(national_site.name, national_site.type)
-    paramsdict['inputtype']='textquery'
-    paramsdict['fields']='geometry'
+    paramsdict['input'] = '{} {}'.format(national_site.name, national_site.type)
+    paramsdict['inputtype'] = 'textquery'
+    paramsdict['fields'] = 'geometry'
     site_base = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
-    placedata=check_cache(site_base, paramsdict)
-    findplace=json.loads(placedata)
-    coords=''
+    placedata = check_cache(site_base, paramsdict)
+    findplace = json.loads(placedata)
+    coords = ''
     for place in findplace['candidates']:
         try:
-            latitude=place['geometry']['location']['lat']
-            longitude=place['geometry']['location']['lng']
-            coords=str(latitude)+','+str(longitude)
+            latitude = place['geometry']['location']['lat']
+            longitude = place['geometry']['location']['lng']
+            coords = str(latitude)+','+str(longitude)
         except:
             print("Sorry, we couldn't find that location. Try another.")
-    nearby_paramsdict={}
-    nearby_paramsdict['location']=coords
+    nearby_paramsdict = {}
+    nearby_paramsdict['location'] = coords
     nearby_paramsdict['key'] = google_places_key
-    nearby_paramsdict['radius']=10000
-    nearby_base='https://maps.googleapis.com/maps/api/place/nearbysearch/json'
-    nearby_data=check_cache(nearby_base, nearby_paramsdict)
-    nearbyplaces=json.loads(nearby_data)
-    nearbyplaces_list=[]
+    nearby_paramsdict['radius'] = 10000
+    nearby_base = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
+    nearby_data = check_cache(nearby_base, nearby_paramsdict)
+    nearbyplaces = json.loads(nearby_data)
+    nearbyplaces_list = []
     for loc in nearbyplaces['results']:
-        lat=loc['geometry']['location']['lat']
-        lng=loc['geometry']['location']['lng']
-        name=loc['name']
+        lat = loc['geometry']['location']['lat']
+        lng = loc['geometry']['location']['lng']
+        name = loc['name']
         nearbyplaces_list.append(NearbyPlace(name,lng,lat))
     return nearbyplaces_list
 
 
-## Must plot all of the NationalSites listed for the state on nps.gov
-## Note that some NationalSites might actually be located outside the state.
-## If any NationalSites are not found by the Google Places API they should
-##  be ignored.
-## param: the 2-letter state abbreviation
-## returns: nothing
-## side effects: launches a plotly page in the web browser
 def plot_sites_for_state(state_abbr):
     #accepts state abbrev, creates Plotly map for national sites in that state
-    lon_vals=[]
-    lat_vals=[]
-    text_vals=[]
-    statelist=get_sites_for_state(state_abbr)
-    state_title=state_abbr.upper()
+    lon_vals = []
+    lat_vals = []
+    text_vals = []
+    statelist = get_sites_for_state(state_abbr)
+    state_title = state_abbr.upper()
     for site in statelist:
         text_vals.append(site.name)
-        sitecoords=get_googleapi_coordinates(site)
+        sitecoords = get_googleapi_coordinates(site)
         if state_abbr == 'ca' or state_abbr == 'ak':
             if site.address_state == 'HI':
                 sitecoords = (0,0,0)
@@ -254,15 +226,11 @@ def plot_sites_for_state(state_abbr):
 
 
 
-## Must plot up to 20 of the NearbyPlaces found using the Google Places API
-## param: the NationalSite around which to search
-## returns: nothing
-## side effects: launches a plotly page in the web browser
 def plot_nearby_for_site(site_object):
     #accepts a NationalSite instance, creates Plotly map for up to 20 nearby places
-    natl_site_lon_vals=[]
-    natl_site_lat_vals=[]
-    natl_site_text_vals=[]
+    natl_site_lon_vals = []
+    natl_site_lat_vals = []
+    natl_site_text_vals = []
     natl_site_text_vals.append(site_object.name)
     natl_site_data=get_googleapi_coordinates(site_object)
     if natl_site_data[0] != 0:
@@ -270,10 +238,10 @@ def plot_nearby_for_site(site_object):
     if natl_site_data[1] != 0:
         natl_site_lon_vals.append(natl_site_data[1])
 
-    nearby_sites_lon_vals=[]
-    nearby_sites_lat_vals=[]
-    nearby_sites_text_vals=[]
-    nearbylist=get_nearby_places_for_site(site_object)
+    nearby_sites_lon_vals = []
+    nearby_sites_lat_vals = []
+    nearby_sites_text_vals = []
+    nearbylist = get_nearby_places_for_site(site_object)
     for nearby_place in nearbylist:
         nearby_sites_text_vals.append(nearby_place.name)
         nearby_sites_lat_vals.append(nearby_place.lat)
@@ -318,20 +286,21 @@ def plot_nearby_for_site(site_object):
 ##########
 ## main ##
 ##########
-sites_list=None
-sitename=None
-inp=input("Hi! Enter a command to start the program. Enter 'help' for a list of commands.: ")
-inp=inp.lower()
-lastcommand=''
+sites_list = None
+sitename = None
+inp = input("Hi! Enter a command to start the program. Enter 'help' for a list of commands.: ")
+inp = inp.lower()
+lastcommand = ''
 while inp != 'exit':
     if inp == 'help':
         print("Valid commands include: \n * <list> * followed by <state abbreviation> in the next prompt. This returns a numbered list of national sites in that state.\n * <help> * Returns this list of commands \n * <exit> * To exit program. \n\n After running the <list> command you can also run: \n * <map> * Shows a map of national sites in the state you chose.\n * <nearby> * followed by a <number> in the next prompt. This returns a list of places nearby the site you chose.\n * After running <nearby> you can also run <map> to see a map of the nearby sites.\n")
     elif inp == 'list':
-        lastcommand='list'
+        lastcommand = 'list'
         state_abbr = input("Enter valid state abbreviation: ")
+        state_abbr = state_abbr.lower()
         try:
-            sites_list=get_sites_for_state(state_abbr)
-            counter=1
+            sites_list = get_sites_for_state(state_abbr)
+            counter = 1
             for pl in sites_list:
                 print(counter, pl)
                 counter+=1
@@ -344,9 +313,9 @@ while inp != 'exit':
         else:
             num = input("Enter the number of the place you want to search nearby (see your list above): ")
             try:
-                index=int(num)-1
-                sitename=sites_list[index]
-                nearbysites_list=get_nearby_places_for_site(sitename)
+                index = int(num)-1
+                sitename = sites_list[index]
+                nearbysites_list = get_nearby_places_for_site(sitename)
                 if len(nearbysites_list) == 0:
                     print("Sorry. We couldn't find that site.")
                 for p in nearbysites_list:
@@ -361,9 +330,9 @@ while inp != 'exit':
         elif lastcommand =='list':
             plot_sites_for_state(state_abbr)
         else:
-            print("Oops! You have to enter <list> before entering nearby")
+            print("Oops! You have to enter <list> before entering <map>")
     else:
         print('Enter valid command: ')
 
-    inp=input("Enter a command: ")
-    inp=inp.lower()
+    inp = input("Enter a command: ")
+    inp = inp.lower()
